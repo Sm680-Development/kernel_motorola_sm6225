@@ -453,6 +453,12 @@ void simple_lmk_mm_freed(struct mm_struct *mm)
 	read_unlock(&mm_free_lock);
 }
 
+void simple_lmk_trigger(void)
+{
+	if (pressure == 100)
+		simple_lmk_trigger();
+}
+
 static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
 				    unsigned long pressure, void *data)
 {
