@@ -535,7 +535,6 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 		ccok = ((feed->cc + 1) & 0x0f) == cc;
 
 	feed->first_cc = 0;
-	feed->cc = cc;
 
 	/* PUSI ? */
 	if (buf[1] & 0x40) {
@@ -546,6 +545,7 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 		feed->pes_cont_err_counter = 0;
 		feed->pes_ts_packets_num = 0;
 	}
+	feed->cc = cc;
 
 	if (feed->pusi_seen == 0)
 		return 0;
