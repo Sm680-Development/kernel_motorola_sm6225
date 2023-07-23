@@ -23,7 +23,6 @@
 #include "u_ether.h"
 #include "u_ether_configfs.h"
 #include "u_ncm.h"
-/* MOTODESK-2239 Add OS descriptor. suzh1 2021-02-05 */
 #include "configfs.h"
 
 /*
@@ -531,7 +530,6 @@ static inline void ncm_reset_values(struct f_ncm *ncm)
 {
 	ncm->parser_opts = &ndp16_opts;
 	ncm->is_crc = false;
-	/* MOTODESK-2239 Fix NTP-32 support. suzh1 2021-02-05 */
 	ncm->ndp_sign = ncm->parser_opts->ndp_sign;
 	ncm->port.cdc_filter = DEFAULT_FILTER;
 
@@ -845,7 +843,6 @@ invalid:
 			ctrl->bRequestType, ctrl->bRequest,
 			w_value, w_index, w_length);
 	}
-	/* MOTODESK-2239 Fix NTP-32 support. suzh1 2021-02-05 */
 	ncm->ndp_sign = ncm->parser_opts->ndp_sign |
 		(ncm->is_crc ? NCM_NDP_HDR_CRC : 0);
 
@@ -1434,7 +1431,7 @@ static int ncm_bind(struct usb_configuration *c, struct usb_function *f)
 		return -EINVAL;
 
 	ncm_opts = container_of(f->fi, struct f_ncm_opts, func_inst);
-	/* Begin MOTODESK-2239 Add OS descriptor support. suzh1 2021-02-05 */
+
 	if (cdev->use_os_string) {
 		f->os_desc_table = kzalloc(sizeof(*f->os_desc_table),
 					   GFP_KERNEL);
@@ -1443,7 +1440,7 @@ static int ncm_bind(struct usb_configuration *c, struct usb_function *f)
 		f->os_desc_n = 1;
 		f->os_desc_table[0].os_desc = &ncm_opts->ncm_os_desc;
 	}
-	/* End MOTODESK-2239 */
+
 	/*
 	 * in drivers/usb/gadget/configfs.c:configfs_composite_bind()
 	 * configurations are bound in sequence with list_for_each_entry,
@@ -1453,8 +1450,7 @@ static int ncm_bind(struct usb_configuration *c, struct usb_function *f)
 	 */
 	if (!ncm_opts->bound) {
 		mutex_lock(&ncm_opts->lock);
-		/* MOTODESK-2239 Use ncm interface name. suzh1 2021-02-05 */
-		ncm_opts->net = gether_setup_name_default("ncm");
+		ncm_opts->net = gether_setup_default();
 		if (IS_ERR(ncm_opts->net)) {
 			status = PTR_ERR(ncm_opts->net);
 			mutex_unlock(&ncm_opts->lock);
@@ -1503,7 +1499,6 @@ static int ncm_bind(struct usb_configuration *c, struct usb_function *f)
 	ncm_control_intf.bInterfaceNumber = status;
 	ncm_union_desc.bMasterInterface0 = status;
 
-	/* MOTODESK-2239 Add OS descriptor. suzh1 2021-02-05 */
 	if (cdev->use_os_string)
 		f->os_desc_table[0].if_id =
 			ncm_iad_desc.bFirstInterface;
@@ -1587,6 +1582,9 @@ static int ncm_bind(struct usb_configuration *c, struct usb_function *f)
 	return 0;
 
 fail:
+	kfree(f->os_desc_table);
+	f->os_desc_n = 0;
+
 	if (ncm->notify_req) {
 		kfree(ncm->notify_req->buf);
 		usb_ep_free_request(ncm->notify, ncm->notify_req);
@@ -1595,10 +1593,6 @@ netdev_cleanup:
 	gether_cleanup(netdev_priv(ncm_opts->net));
 
 error:
-	/* Begin MOTODESK-2239 Add OS descriptor support. suzh1 2021-02-05 */
-	kfree(f->os_desc_table);
-	f->os_desc_n = 0;
-	/* End MOTODESK-2239 */
 	ERROR(cdev, "%s: can't bind, err %d\n", f->name, status);
 
 	return status;
@@ -1694,7 +1688,6 @@ static void ncm_free_inst(struct usb_function_instance *f)
 	opts = container_of(f, struct f_ncm_opts, func_inst);
 	if (opts->bound)
 		gether_cleanup(netdev_priv(opts->net));
-	/* MOTODESK-2239 Add OS descriptor support. suzh1 2021-02-05 */
 	kfree(opts->ncm_interf_group);
 	kfree(opts);
 }
@@ -1702,7 +1695,6 @@ static void ncm_free_inst(struct usb_function_instance *f)
 static struct usb_function_instance *ncm_alloc_inst(void)
 {
 	struct f_ncm_opts *opts;
-	/* Begin MOTODESK-2239 Add OS descriptor support. suzh1 2021-02-05 */
 	struct usb_os_desc *descs[1];
 	char *names[1];
 	struct config_group *ncm_interf_group;
@@ -1714,7 +1706,6 @@ static struct usb_function_instance *ncm_alloc_inst(void)
 
 	mutex_init(&opts->lock);
 	opts->func_inst.free_func_inst = ncm_free_inst;
-
 	INIT_LIST_HEAD(&opts->ncm_os_desc.ext_prop);
 
 	descs[0] = &opts->ncm_os_desc;
@@ -1729,7 +1720,7 @@ static struct usb_function_instance *ncm_alloc_inst(void)
 		return ERR_CAST(ncm_interf_group);
 	}
 	opts->ncm_interf_group = ncm_interf_group;
-	/* End MOTODESK-2239 */
+
 #ifdef CONFIG_USB_CONFIGFS_UEVENT
 	_ncm_setup_desc = kzalloc(sizeof(*_ncm_setup_desc), GFP_KERNEL);
 	if (!_ncm_setup_desc)
@@ -1766,10 +1757,9 @@ static void ncm_unbind(struct usb_configuration *c, struct usb_function *f)
 
 	hrtimer_cancel(&ncm->task_timer);
 
-	/* Begin MOTODESK-2239 Add OS descriptor support. suzh1 2021-02-05 */
 	kfree(f->os_desc_table);
 	f->os_desc_n = 0;
-	/* End MOTODESK-2239 */
+
 	ncm_string_defs[0].id = 0;
 	usb_free_all_descriptors(f);
 
