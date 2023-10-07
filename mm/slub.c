@@ -1212,7 +1212,7 @@ static noinline int free_debug_processing(
 	struct kmem_cache_node *n = get_node(s, page_to_nid(page));
 	void *object = head;
 	int cnt = 0;
-	unsigned long flags;
+	unsigned long uninitialized_var(flags);
 	int ret = 0;
 
 	spin_lock_irqsave(&n->list_lock, flags);
@@ -2908,7 +2908,7 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
 	struct page new;
 	unsigned long counters;
 	struct kmem_cache_node *n = NULL;
-	unsigned long flags;
+	unsigned long uninitialized_var(flags);
 
 	stat(s, FREE_SLOWPATH);
 
@@ -2962,21 +2962,20 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
 
 	if (likely(!n)) {
 
-		if (likely(was_frozen)) {
-			/*
-			 * The list lock was not taken therefore no list
-			 * activity can be necessary.
-			 */
-			stat(s, FREE_FROZEN);
-		} else if (new.frozen) {
-			/*
-			 * If we just froze the page then put it onto the
-			 * per cpu partial list.
-			 */
+		/*
+		 * If we just froze the page then put it onto the
+		 * per cpu partial list.
+		 */
+		if (new.frozen && !was_frozen) {
 			put_cpu_partial(s, page, 1);
 			stat(s, CPU_PARTIAL_FREE);
 		}
-
+		/*
+		 * The list lock was not taken therefore no list
+		 * activity can be necessary.
+		 */
+		if (was_frozen)
+			stat(s, FREE_FROZEN);
 		return;
 	}
 

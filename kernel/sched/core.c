@@ -3640,10 +3640,8 @@ context_switch(struct rq *rq, struct task_struct *prev,
 		next->active_mm = oldmm;
 		mmgrab(oldmm);
 		enter_lazy_tlb(oldmm, next);
-	} else {
+	} else
 		switch_mm_irqs_off(oldmm, mm, next);
-		lru_gen_use_mm(mm);
-	}
 
 	if (!prev->mm) {
 		prev->active_mm = NULL;
@@ -8710,6 +8708,7 @@ void sched_exit(struct task_struct *p)
 	enqueue_task(rq, p, 0);
 	clear_ed_task(p, rq);
 	task_rq_unlock(rq, p, &rf);
+	free_task_load_ptrs(p);
 }
 #endif /* CONFIG_SCHED_WALT */
 

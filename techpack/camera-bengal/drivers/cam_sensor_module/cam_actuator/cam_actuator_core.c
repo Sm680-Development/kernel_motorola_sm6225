@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -581,7 +580,6 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 				}
 				break;
 			}
-			cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 		}
 
 #ifdef CONFIG_AF_NOISE_ELIMINATION
@@ -758,7 +756,6 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 	}
 
 end:
-	cam_mem_put_cpu_buf(config.packet_handle);
 	return rc;
 }
 

@@ -12,7 +12,6 @@
 #else
 #include <linux/sched.h>
 #endif
-#include <linux/vmalloc.h>
 
 #include "exfat_raw.h"
 #include "exfat_fs.h"
@@ -76,12 +75,8 @@ static int exfat_allocate_bitmap(struct super_block *sb,
 	}
 	sbi->map_sectors = ((need_map_size - 1) >>
 			(sb->s_blocksize_bits)) + 1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
-	sbi->vol_amap = kvmalloc_array(sbi->map_sectors,
+	sbi->vol_amap = kmalloc_array(sbi->map_sectors,
 				sizeof(struct buffer_head *), GFP_KERNEL);
-#else
-	sbi->vol_amap = vmalloc(sbi->map_sectors * sizeof(struct buffer_head *));
-#endif
 	if (!sbi->vol_amap)
 		return -ENOMEM;
 
@@ -95,7 +90,7 @@ static int exfat_allocate_bitmap(struct super_block *sb,
 			while (j < i)
 				brelse(sbi->vol_amap[j++]);
 
-			kvfree(sbi->vol_amap);
+			kfree(sbi->vol_amap);
 			sbi->vol_amap = NULL;
 			return -EIO;
 		}
@@ -149,7 +144,7 @@ void exfat_free_bitmap(struct exfat_sb_info *sbi)
 	for (i = 0; i < sbi->map_sectors; i++)
 		__brelse(sbi->vol_amap[i]);
 
-	kvfree(sbi->vol_amap);
+	kfree(sbi->vol_amap);
 }
 
 int exfat_set_bitmap(struct inode *inode, unsigned int clu, bool sync)

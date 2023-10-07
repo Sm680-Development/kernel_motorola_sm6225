@@ -140,7 +140,7 @@ static void __exit_signal(struct task_struct *tsk)
 	struct signal_struct *sig = tsk->signal;
 	bool group_dead = thread_group_leader(tsk);
 	struct sighand_struct *sighand;
-	struct tty_struct *tty;
+	struct tty_struct *uninitialized_var(tty);
 	u64 utime, stime;
 
 	sighand = rcu_dereference_check(tsk->sighand,
@@ -536,7 +536,6 @@ assign_new_owner:
 		goto retry;
 	}
 	mm->owner = c;
-	lru_gen_migrate_mm(mm);
 	task_unlock(c);
 	put_task_struct(c);
 }
