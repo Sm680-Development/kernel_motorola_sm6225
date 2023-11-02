@@ -180,8 +180,8 @@ int devfreq_add_devbw(struct device *dev)
 		return PTR_ERR(d->df);
 	}
 
-	if (!strcmp(dev_name(dev), "soc:qcom,cpu-llcc-ddr-bw"))
-		devfreq_register_boost_device(DEVFREQ_CPU_LLCC_DDR_BW, d->df);
+	if (!strcmp(dev_name(dev), "soc:qcom,cpu-cpu-ddr-bw"))
+		devfreq_register_boost_device(DEVFREQ_CPU_CPU_DDR_BW, d->df);
 
 	return 0;
 }
@@ -220,7 +220,6 @@ static int devfreq_devbw_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id devbw_match_table[] = {
-	{ .compatible = "qcom,devbw-llcc" },
 	{ .compatible = "qcom,devbw-ddr" },
 	{ .compatible = "qcom,devbw" },
 	{}
